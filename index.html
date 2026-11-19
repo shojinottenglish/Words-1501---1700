@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>1501－1700</title>
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #1e1b4b;
+    color: #f8fafc;
+    font-family: "UD デジタル 教科書体 NK-R", "Hiragino Maru Gothic ProN", "Meiryo", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  #hud {
+    width: 100%;
+    max-width: 820px;
+    background: linear-gradient(90deg, #312e81, #1e3a8a);
+    border-bottom: 2px solid #6366f1;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    z-index: 10;
+  }
+  .hud-item {
+    background: rgba(15, 23, 42, 0.55);
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+  }
+  #holding-bar {
+    width: 100%;
+    max-width: 820px;
+    background: #0f172a;
+    padding: 6px 14px;
+    text-align: center;
+    font-size: 0.94rem;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  #holding-word {
+    color: #fde047;
+    font-weight: bold;
+    font-size: 1.05rem;
+  }
+  #game-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 820px;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px;
+  }
+  canvas {
+    background: #14532d;
+    border: 3px solid #86efac;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    touch-action: none;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    transition: border-color 0.3s;
+  }
+  canvas.last-five {
+    border-color: #ef4444;
+    box-shadow: 0 0 26px rgba(239, 68, 68, 0.6);
+  }
+  .overlay {
+    position: absolute;
+    inset: 6px;
+    background: rgba(15, 23, 42, 0.94);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 14px;
+    text-align: center;
+    z-index: 20;
+    overflow-y: auto;
+  }
+  .overlay.hidden {
+    display: none;
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-size: 1.35rem;
+    color: #fde047;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .sub {
+    font-size: 0.83rem;
+    color: #cbd5e1;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    max-width: 580px;
+  }
+  .opt-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    max-width: 660px;
+  }
+  .opt-btn {
+    background: #334155;
+    color: #f8fafc;
+    border: 2px solid #64748b;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .opt-btn.highlight {
+    border-color: #f59e0b;
+  }
+  .opt-btn.active {
+    background: #2563eb;
+    border-color: #93c5fd;
+    color: #fff;
+  }
+  .start-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #1e293b;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 34px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #92400e;
+    margin-top: 4px;
+  }
+  .start-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #92400e;
+  }
+  #miss-box {
+    max-height: 140px;
+    overflow-y: auto;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+    text-align: left;
+    width: 100%;
+    max-width: 460px;
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="hud-item"><span id="hud-char-icon">🐩</span> ライフ: <span id="hud-life">❤️❤️❤️</span></div>
+  <div class="hud-item">💖 復活まで: <span id="hud-heal" style="color:#f472b6;">0 / 5</span></div>
+  <div class="hud-item">✨ クリア: <span id="hud-cleared" style="color:#4ade80;">0</span> / <span id="hud-total">50</span></div>
+  <div class="hud-item">🏆 スコア: <span id="hud-score" style="color:#fde047;">0</span></div>
+</div>
+
+<div id="holding-bar">
+  <span>🐾 キャッチ中：</span>
+  <span id="holding-word">（まだ持っていません — 青い英単語に触れよう！）</span>
+</div>
+
+<div id="game-wrap">
+  <canvas id="gameCanvas" width="800" height="540"></canvas>
+
+  <!-- スタート画面 -->
+  <div class="overlay" id="startOverlay">
+    <h1>🐾 1501－1700</h1>
+    <p class="sub">
+      英単語 <b>1501－1700（全200語）</b>を品詞別に収録！<br>
+      ① 画面に並ぶ<b>英単語と日本語</b>をマッチングしよう！<br>
+      ② 別の英単語に触れたら持ち替えになるだけ！<b>違う日本語に触れるとライフ -1</b>！<br>
+      ③ <b>5個正解でライフ1つ復活💖</b>！<b>ラスト5問はスピードアップ＆ボス出現👑</b><br>
+      <span style="color:#93c5fd; font-size:0.78rem;">操作：矢印キー(↑↓←→) / WASD / 画面タップ＆ドラッグ</span>
+    </p>
+
+    <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ キャラクターを選択</div>
+    <div class="opt-group" id="charGroup">
+      <button class="opt-btn active" onclick="selectChar('poodle', this)">🐩 白のトイプードル</button>
+      <button class="opt-btn" onclick="selectChar('cat', this)">🐱 ハチワレ白猫</button>
+    </div>
+
+    <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ 品詞・出題コースを選択</div>
+    <div class="opt-group" id="lessonGroup">
+      <button class="opt-btn highlight active" onclick="selectLesson('test50', this)">🔥 全品詞ミックス 50問テスト</button>
+      <button class="opt-btn" onclick="selectLesson('verb', this)">📘 動詞すべて (76語)</button>
+      <button class="opt-btn" onclick="selectLesson('noun', this)">📗 名詞すべて (76語)</button>
+      <button class="opt-btn" onclick="selectLesson('adj', this)">📙 形容詞すべて (48語)</button>
+      <button class="opt-btn" onclick="selectLesson('random25', this)">🎲 全品詞ランダム (25問)</button>
+      <button class="opt-btn" onclick="selectLesson('all200', this)">👑 1501－1700 全200語 完全制覇！</button>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-bottom:4px;">
+      <div>
+        <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ 同時表示する英単語数</div>
+        <div class="opt-group" id="pairCountGroup" style="margin-bottom:4px;">
+          <button class="opt-btn" onclick="selectPairCount(4, this)">4つ</button>
+          <button class="opt-btn" onclick="selectPairCount(6, this)">6つ</button>
+          <button class="opt-btn active" onclick="selectPairCount(8, this)">8つ</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.78rem; color:#fde047; margin-bottom:3px; font-weight:bold;">▼ お化けのスピード</div>
+        <div class="opt-group" id="speedGroup" style="margin-bottom:4px;">
+          <button class="opt-btn active" onclick="selectGhostSpeed(1.15, this)">ゆっくり</button>
+          <button class="opt-btn" onclick="selectGhostSpeed(1.65, this)">ふつう</button>
+          <button class="opt-btn" onclick="selectGhostSpeed(2.2, this)">はやい</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">テストスタート！</button>
+  </div>
+
+  <!-- リザルト画面 -->
+  <div class="overlay hidden" id="endOverlay">
+    <h1 id="endTitle">ゲームクリア！</h1>
+    <p class="sub" id="endMsg" style="margin-bottom:6px;"></p>
+    <div id="miss-box" class="hidden"></div>
+    <button class="start-btn" onclick="showStartScreen()">もう一度あそぶ</button>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// 1501－1700 品詞別 全200語データ（日本語訳は1つに厳選）
+// ==========================================
+const WORD_DATA = [
+  // --- 動詞 (76語) ---
+  { pos: "verb", en: "bless", jp: "に恩恵を与える" },
+  { pos: "verb", en: "regain", jp: "を取り戻す" },
+  { pos: "verb", en: "conform", jp: "順応する" },
+  { pos: "verb", en: "enroll", jp: "登録する" },
+  { pos: "verb", en: "entitle", jp: "に権利を与える" },
+  { pos: "verb", en: "halt", jp: "を止める" },
+  { pos: "verb", en: "provoke", jp: "を引き起こす" },
+  { pos: "verb", en: "invade", jp: "を侵略する" },
+  { pos: "verb", en: "squeeze", jp: "を押し込む" },
+  { pos: "verb", en: "crawl", jp: "はう" },
+  { pos: "verb", en: "digest", jp: "を消化する" },
+  { pos: "verb", en: "utter", jp: "を発する" },
+  { pos: "verb", en: "refrain", jp: "控える" },
+  { pos: "verb", en: "populate", jp: "に住む" },
+  { pos: "verb", en: "accommodate", jp: "を収容する" },
+  { pos: "verb", en: "steer", jp: "を操縦する" },
+  { pos: "verb", en: "drown", jp: "溺死する" },
+  { pos: "verb", en: "dip", jp: "を浸す" },
+  { pos: "verb", en: "soak", jp: "を浸す" },
+  { pos: "verb", en: "stir", jp: "をかき回す" },
+  { pos: "verb", en: "transplant", jp: "を移植する" },
+  { pos: "verb", en: "reassure", jp: "を安心させる" },
+  { pos: "verb", en: "resume", jp: "を再開する" },
+  { pos: "verb", en: "speculate", jp: "と推測する" },
+  { pos: "verb", en: "surpass", jp: "を上回る" },
+  { pos: "verb", en: "appoint", jp: "を任命する" },
+  { pos: "verb", en: "intrigue", jp: "に興味を持たせる" },
+  { pos: "verb", en: "decay", jp: "腐敗する" },
+  { pos: "verb", en: "contaminate", jp: "を汚染する" },
+  { pos: "verb", en: "swell", jp: "膨張する" },
+  { pos: "verb", en: "delete", jp: "を削除する" },
+  { pos: "verb", en: "tolerate", jp: "を許容する" },
+  { pos: "verb", en: "envy", jp: "をうらやむ" },
+  { pos: "verb", en: "pray", jp: "祈る" },
+  { pos: "verb", en: "confess", jp: "を告白する" },
+  { pos: "verb", en: "resign", jp: "を辞任する" },
+  { pos: "verb", en: "dissolve", jp: "を溶かす" },
+  { pos: "verb", en: "unfold", jp: "を開く" },
+  { pos: "verb", en: "awaken", jp: "を目覚めさせる" },
+  { pos: "verb", en: "conceive", jp: "を思いつく" },
+  { pos: "verb", en: "collaborate", jp: "共同して働く" },
+  { pos: "verb", en: "exert", jp: "を及ぼす" },
+  { pos: "verb", en: "excel", jp: "秀でている" },
+  { pos: "verb", en: "prosper", jp: "栄える" },
+  { pos: "verb", en: "surge", jp: "殺到する" },
+  { pos: "verb", en: "intervene", jp: "介入する" },
+  { pos: "verb", en: "insert", jp: "を挿入する" },
+  { pos: "verb", en: "overtake", jp: "を追い抜く" },
+  { pos: "verb", en: "snap", jp: "をポキッと折る" },
+  { pos: "verb", en: "carve", jp: "を彫る" },
+  { pos: "verb", en: "addict", jp: "中毒になる" },
+  { pos: "verb", en: "condemn", jp: "を非難する" },
+  { pos: "verb", en: "convict", jp: "に有罪を宣告する" },
+  { pos: "verb", en: "dictate", jp: "を指図する" },
+  { pos: "verb", en: "prescribe", jp: "を処方する" },
+  { pos: "verb", en: "inhibit", jp: "を抑制する" },
+  { pos: "verb", en: "stray", jp: "はぐれる" },
+  { pos: "verb", en: "roam", jp: "を歩き回る" },
+  { pos: "verb", en: "enclose", jp: "を同封する" },
+  { pos: "verb", en: "execute", jp: "を実行する" },
+  { pos: "verb", en: "coincide", jp: "同時に起こる" },
+  { pos: "verb", en: "lag", jp: "遅れる" },
+  { pos: "verb", en: "cling", jp: "しがみつく" },
+  { pos: "verb", en: "erase", jp: "を消す" },
+  { pos: "verb", en: "grind", jp: "をひく" },
+  { pos: "verb", en: "knit", jp: "を編む" },
+  { pos: "verb", en: "inquire", jp: "を尋ねる" },
+  { pos: "verb", en: "betray", jp: "を裏切る" },
+  { pos: "verb", en: "leak", jp: "漏れる" },
+  { pos: "verb", en: "smash", jp: "を粉砕する" },
+  { pos: "verb", en: "bounce", jp: "跳ねる" },
+  { pos: "verb", en: "sprawl", jp: "不規則に広がる" },
+  { pos: "verb", en: "converse", jp: "会話をする" },
+  { pos: "verb", en: "recite", jp: "を暗唱する" },
+  { pos: "verb", en: "disregard", jp: "を無視する" },
+  { pos: "verb", en: "frown", jp: "眉をひそめる" },
+  { pos: "verb", en: "evoke", jp: "を呼び起こす" },
+  { pos: "verb", en: "pledge", jp: "を誓う" },
+  { pos: "verb", en: "aspire", jp: "熱望する" },
+  { pos: "verb", en: "contemplate", jp: "を熟考する" },
+
+  // --- 名詞 (76語) ---
+  { pos: "noun", en: "entrepreneur", jp: "起業家" },
+  { pos: "noun", en: "stake", jp: "利害関係" },
+  { pos: "noun", en: "surplus", jp: "余剰" },
+  { pos: "noun", en: "inflation", jp: "インフレ" },
+  { pos: "noun", en: "sweatshop", jp: "搾取工場" },
+  { pos: "noun", en: "clash", jp: "衝突" },
+  { pos: "noun", en: "sociology", jp: "社会学" },
+  { pos: "noun", en: "ideology", jp: "イデオロギー" },
+  { pos: "noun", en: "margin", jp: "余白" },
+  { pos: "noun", en: "realm", jp: "領域" },
+  { pos: "noun", en: "domain", jp: "分野" },
+  { pos: "noun", en: "algorithm", jp: "アルゴリズム" },
+  { pos: "noun", en: "prairie", jp: "大草原" },
+  { pos: "noun", en: "frontier", jp: "最先端" },
+  { pos: "noun", en: "bullet", jp: "銃弾" },
+  { pos: "noun", en: "shield", jp: "盾" },
+  { pos: "noun", en: "despair", jp: "絶望" },
+  { pos: "noun", en: "radiation", jp: "放射能" },
+  { pos: "noun", en: "placebo", jp: "偽薬" },
+  { pos: "noun", en: "nursery", jp: "託児所" },
+  { pos: "noun", en: "spouse", jp: "配偶者" },
+  { pos: "noun", en: "makeup", jp: "化粧" },
+  { pos: "noun", en: "mummy", jp: "ミイラ" },
+  { pos: "noun", en: "flesh", jp: "肉" },
+  { pos: "noun", en: "limb", jp: "手足" },
+  { pos: "noun", en: "odor", jp: "におい" },
+  { pos: "noun", en: "laundry", jp: "洗濯物" },
+  { pos: "noun", en: "tide", jp: "潮" },
+  { pos: "noun", en: "questionnaire", jp: "アンケート" },
+  { pos: "noun", en: "nonsense", jp: "ばかげた話" },
+  { pos: "noun", en: "revenge", jp: "復讐" },
+  { pos: "noun", en: "intellect", jp: "知性" },
+  { pos: "noun", en: "hospitality", jp: "歓待" },
+  { pos: "noun", en: "librarian", jp: "司書" },
+  { pos: "noun", en: "manuscript", jp: "原稿" },
+  { pos: "noun", en: "obsession", jp: "強迫観念" },
+  { pos: "noun", en: "hygiene", jp: "衛生" },
+  { pos: "noun", en: "paradigm", jp: "パラダイム" },
+  { pos: "noun", en: "grace", jp: "優美" },
+  { pos: "noun", en: "enlightenment", jp: "啓蒙" },
+  { pos: "noun", en: "commerce", jp: "商業" },
+  { pos: "noun", en: "draft", jp: "下書き" },
+  { pos: "noun", en: "barrel", jp: "バレル" },
+  { pos: "noun", en: "timber", jp: "木材" },
+  { pos: "noun", en: "garment", jp: "衣服" },
+  { pos: "noun", en: "thread", jp: "糸" },
+  { pos: "noun", en: "cabinet", jp: "内閣" },
+  { pos: "noun", en: "bureau", jp: "局" },
+  { pos: "noun", en: "autonomy", jp: "自治" },
+  { pos: "noun", en: "toll", jp: "損害" },
+  { pos: "noun", en: "discourse", jp: "話し合い" },
+  { pos: "noun", en: "superstition", jp: "迷信" },
+  { pos: "noun", en: "glimpse", jp: "ちらりと見えること" },
+  { pos: "noun", en: "arithmetic", jp: "計算" },
+  { pos: "noun", en: "glossary", jp: "用語集" },
+  { pos: "noun", en: "archive", jp: "記録文書" },
+  { pos: "noun", en: "legacy", jp: "遺産" },
+  { pos: "noun", en: "anthropology", jp: "人類学" },
+  { pos: "noun", en: "rage", jp: "激怒" },
+  { pos: "noun", en: "sorrow", jp: "悲しみ" },
+  { pos: "noun", en: "psychiatrist", jp: "精神科医" },
+  { pos: "noun", en: "ward", jp: "病棟" },
+  { pos: "noun", en: "stall", jp: "露店" },
+  { pos: "noun", en: "flame", jp: "炎" },
+  { pos: "noun", en: "moisture", jp: "水分" },
+  { pos: "noun", en: "irony", jp: "皮肉" },
+  { pos: "noun", en: "warrior", jp: "戦士" },
+  { pos: "noun", en: "astronomy", jp: "天文学" },
+  { pos: "noun", en: "probe", jp: "宇宙探査機" },
+  { pos: "noun", en: "altitude", jp: "高度" },
+  { pos: "noun", en: "tumor", jp: "腫瘍" },
+  { pos: "noun", en: "defect", jp: "欠陥" },
+  { pos: "noun", en: "sanitation", jp: "公衆衛生" },
+  { pos: "noun", en: "longevity", jp: "長寿" },
+  { pos: "noun", en: "scope", jp: "範囲" },
+  { pos: "noun", en: "sentiment", jp: "感情" },
+
+  // --- 形容詞 (48語) ---
+  { pos: "adj", en: "loyal", jp: "忠実な" },
+  { pos: "adj", en: "legitimate", jp: "合法的な" },
+  { pos: "adj", en: "authentic", jp: "本物の" },
+  { pos: "adj", en: "empirical", jp: "経験的な" },
+  { pos: "adj", en: "immense", jp: "膨大な" },
+  { pos: "adj", en: "absurd", jp: "ばかげた" },
+  { pos: "adj", en: "weird", jp: "異様な" },
+  { pos: "adj", en: "accidental", jp: "偶然の" },
+  { pos: "adj", en: "uneasy", jp: "不安な" },
+  { pos: "adj", en: "jealous", jp: "嫉妬深い" },
+  { pos: "adj", en: "feminine", jp: "女らしい" },
+  { pos: "adj", en: "swift", jp: "素早い" },
+  { pos: "adj", en: "hollow", jp: "空洞の" },
+  { pos: "adj", en: "crude", jp: "大まかな" },
+  { pos: "adj", en: "sore", jp: "痛い" },
+  { pos: "adj", en: "pessimistic", jp: "悲観的な" },
+  { pos: "adj", en: "vain", jp: "無駄な" },
+  { pos: "adj", en: "susceptible", jp: "影響を受けやすい" },
+  { pos: "adj", en: "edible", jp: "食用の" },
+  { pos: "adj", en: "sheer", jp: "純然たる" },
+  { pos: "adj", en: "explicit", jp: "明白な" },
+  { pos: "adj", en: "prone", jp: "なりやすい" },
+  { pos: "adj", en: "affluent", jp: "裕福な" },
+  { pos: "adj", en: "plausible", jp: "もっともらしい" },
+  { pos: "adj", en: "vigorous", jp: "精力的な" },
+  { pos: "adj", en: "masculine", jp: "男らしい" },
+  { pos: "adj", en: "rigid", jp: "厳しい" },
+  { pos: "adj", en: "adverse", jp: "不都合な" },
+  { pos: "adj", en: "coherent", jp: "一貫した" },
+  { pos: "adj", en: "literal", jp: "文字どおりの" },
+  { pos: "adj", en: "arbitrary", jp: "恣意的な" },
+  { pos: "adj", en: "anonymous", jp: "匿名の" },
+  { pos: "adj", en: "antique", jp: "骨董の" },
+  { pos: "adj", en: "eternal", jp: "永遠の" },
+  { pos: "adj", en: "intermediate", jp: "中級の" },
+  { pos: "adj", en: "subordinate", jp: "下位の" },
+  { pos: "adj", en: "gloomy", jp: "陰気な" },
+  { pos: "adj", en: "thermal", jp: "熱の" },
+  { pos: "adj", en: "faint", jp: "かすかな" },
+  { pos: "adj", en: "naive", jp: "お人よしの" },
+  { pos: "adj", en: "apt", jp: "傾向がある" },
+  { pos: "adj", en: "arrogant", jp: "横柄な" },
+  { pos: "adj", en: "extrovert", jp: "外向的な" },
+  { pos: "adj", en: "conspicuous", jp: "目立つ" },
+  { pos: "adj", en: "intact", jp: "損なわれていない" }
+];
+
+// ==========================================
+// 音声・効果音
+// ==========================================
+let audioCtx = null;
+function playSfx(type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'pick') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.setValueAtTime(680, now + 0.06);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } else if (type === 'match') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(587, now);
+      osc.frequency.setValueAtTime(784, now + 0.08);
+      osc.frequency.setValueAtTime(1046, now + 0.16);
+      gain.gain.setValueAtTime(0.16, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+      osc.start(now);
+      osc.stop(now + 0.34);
+    } else if (type === 'heal') {
+      osc.type = 'sine';
+      [523, 659, 784, 1046, 1318].forEach((f, idx) => {
+        osc.frequency.setValueAtTime(f, now + idx * 0.07);
+      });
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } else if (type === 'boss') {
+      osc.type = 'sawtooth';
+      [220, 196, 261, 330, 440].forEach((f, idx) => {
+        osc.frequency.setValueAtTime(f, now + idx * 0.08);
+      });
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } else if (type === 'damage') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(160, now);
+      osc.frequency.exponentialRampToValueAtTime(65, now + 0.35);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    }
+  } catch (e) {}
+}
+
+function speakWord(text) {
+  try {
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/\.\.\./g, '').replace(/\//g, ' ').trim();
+    const u = new SpeechSynthesisUtterance(clean);
+    u.lang = 'en-US';
+    u.rate = 0.95;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// ==========================================
+// ゲーム状態管理
+// ==========================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const MAX_LIFE = 3;
+let visiblePairCount = 8;
+
+let selectedChar = 'poodle'; // 'poodle' or 'cat'
+let selectedLesson = 'test50';
+let ghostBaseSpeed = 1.15;
+
+function selectChar(val, btn) {
+  selectedChar = val;
+  document.querySelectorAll('#charGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('hud-char-icon').textContent = (val === 'cat') ? '🐱' : '🐩';
+}
+
+function selectLesson(val, btn) {
+  selectedLesson = val;
+  document.querySelectorAll('#lessonGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function selectPairCount(val, btn) {
+  visiblePairCount = val;
+  document.querySelectorAll('#pairCountGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function selectGhostSpeed(val, btn) {
+  ghostBaseSpeed = val;
+  document.querySelectorAll('#speedGroup .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+let gameState = 'menu';
+let animId = null;
+let lastFrameTime = 0;
+
+let life = MAX_LIFE;
+let score = 0;
+let clearedCount = 0;
+let totalTarget = 50;
+let remainingPool = [];
+let activePairs = [];
+let tiles = [];
+let selectedEnId = null;
+let missedWords = [];
+let isLastFiveBoost = false;
+
+let bannerText = '';
+let bannerColor = '#fde047';
+let bannerTimer = 0;
+let particles = [];
+
+const player = {
+  x: 400,
+  y: 270,
+  r: 18,
+  speed: 245,
+  dirX: 1,
+  walkPhase: 0,
+  invulnTimer: 0,
+  targetX: null,
+  targetY: null
+};
+
+let ghosts = [];
+let bossGhost = null;
+
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) {
+    if (gameState === 'playing') e.preventDefault();
+  }
+});
+window.addEventListener('keyup', e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+let pointerActive = false;
+function setPointerTarget(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  player.targetX = Math.max(24, Math.min(canvas.width - 24, (clientX - rect.left) * scaleX));
+  player.targetY = Math.max(24, Math.min(canvas.height - 24, (clientY - rect.top) * scaleY));
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (gameState !== 'playing') return;
+  pointerActive = true;
+  setPointerTarget(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pointerActive || gameState !== 'playing') return;
+  setPointerTarget(e.clientX, e.clientY);
+});
+window.addEventListener('pointerup', () => {
+  pointerActive = false;
+});
+
+function showBanner(text, color = '#fde047', duration = 1.3) {
+  bannerText = text;
+  bannerColor = color;
+  bannerTimer = duration;
+}
+
+function showStartScreen() {
+  gameState = 'menu';
+  if (animId) cancelAnimationFrame(animId);
+  bossGhost = null;
+  canvas.classList.remove('last-five');
+  document.getElementById('endOverlay').classList.add('hidden');
+  document.getElementById('startOverlay').classList.remove('hidden');
+}
+
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function resetPositionsToStart() {
+  player.x = canvas.width / 2;
+  player.y = canvas.height / 2;
+  player.dirX = 1;
+  player.targetX = null;
+  player.targetY = null;
+  pointerActive = false;
+
+  if (ghosts.length >= 3) {
+    ghosts[0].x = 60;
+    ghosts[0].y = 60;
+    ghosts[1].x = canvas.width - 60;
+    ghosts[1].y = 60;
+    ghosts[2].x = 60;
+    ghosts[2].y = canvas.height - 60;
+  }
+
+  if (bossGhost) {
+    bossGhost.x = canvas.width - 55;
+    bossGhost.y = canvas.height - 55;
+  }
+}
+
+function startGame() {
+  document.getElementById('startOverlay').classList.add('hidden');
+  document.getElementById('endOverlay').classList.add('hidden');
+  canvas.classList.remove('last-five');
+
+  let pool;
+  if (selectedLesson === 'test50') {
+    const v = shuffleArray(WORD_DATA.filter(w => w.pos === 'verb')).slice(0, 19);
+    const n = shuffleArray(WORD_DATA.filter(w => w.pos === 'noun')).slice(0, 19);
+    const a = shuffleArray(WORD_DATA.filter(w => w.pos === 'adj')).slice(0, 12);
+    pool = shuffleArray([...v, ...n, ...a]);
+  } else if (selectedLesson === 'random25') {
+    pool = shuffleArray(WORD_DATA).slice(0, 25);
+  } else if (selectedLesson === 'all200') {
+    pool = shuffleArray(WORD_DATA);
+  } else {
+    pool = shuffleArray(WORD_DATA.filter(w => w.pos === selectedLesson));
+  }
+
+  totalTarget = pool.length;
+  clearedCount = 0;
+  score = 0;
+  life = MAX_LIFE;
+  selectedEnId = null;
+  missedWords = [];
+  particles = [];
+  bannerTimer = 0;
+  isLastFiveBoost = false;
+  bossGhost = null;
+
+  const indexedPool = pool.map((item, idx) => ({
+    id: idx + 1,
+    en: item.en,
+    jp: item.jp
+  }));
+
+  activePairs = indexedPool.slice(0, visiblePairCount);
+  remainingPool = indexedPool.slice(visiblePairCount);
+  ghosts = [
+    { x: 60, y: 60, r: 17, speed: ghostBaseSpeed * 68, color: '#f8fafc', eyeColor: '#ef4444', type: 'chase', phase: 0 },
+    { x: canvas.width - 60, y: 60, r: 17, speed: ghostBaseSpeed * 62, color: '#c084fc', eyeColor: '#fef08a', type: 'intercept', phase: 2 },
+    { x: 60, y: canvas.height - 60, r: 17, speed: ghostBaseSpeed * 58, color: '#38bdf8', eyeColor: '#1e1b4b', type: 'wave', phase: 4 }
+  ];
+
+  resetPositionsToStart();
+  player.invulnTimer = 1.5;
+
+  layoutAndShuffleTiles(false);
+  updateHud();
+  updateHoldingBar();
+
+  gameState = 'playing';
+  lastFrameTime = performance.now();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function spawnBossGhost() {
+  const corners = [
+    { x: 55, y: 55 },
+    { x: canvas.width - 55, y: 55 },
+    { x: 55, y: canvas.height - 55 },
+    { x: canvas.width - 55, y: canvas.height - 55 }
+  ];
+  let bestCorner = corners[3];
+  let maxDist = -1;
+  corners.forEach(c => {
+    const d = Math.hypot(c.x - player.x, c.y - player.y);
+    if (d > maxDist) {
+      maxDist = d;
+      bestCorner = c;
+    }
+  });
+
+  bossGhost = {
+    x: bestCorner.x,
+    y: bestCorner.y,
+    r: 27,
+    speed: ghostBaseSpeed * 74,
+    phase: 0
+  };
+  spawnParticles(bossGhost.x, bossGhost.y, '#ef4444', 28);
+}
+
+function layoutAndShuffleTiles(announce = true) {
+  const totalCards = activePairs.length * 2;
+  const cols = 4;
+  const rows = Math.ceil(totalCards / cols);
+  const marginX = 48;
+  const marginY = 38;
+  const cellW = (canvas.width - marginX * 2) / cols;
+  const cellH = (canvas.height - marginY * 2) / rows;
+
+  const slots = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      slots.push({
+        cx: marginX + cellW * (c + 0.5) + (Math.random() - 0.5) * 22,
+        cy: marginY + cellH * (r + 0.5) + (Math.random() - 0.5) * 16
+      });
+    }
+  }
+  const shuffledSlots = shuffleArray(slots);
+
+  const items = [];
+  activePairs.forEach(p => {
+    items.push({ pairId: p.id, kind: 'en', text: p.en });
+    items.push({ pairId: p.id, kind: 'jp', text: p.jp });
+  });
+  const shuffledItems = shuffleArray(items);
+
+  tiles = shuffledItems.map((item, i) => {
+    const slot = shuffledSlots[i];
+    ctx.font = 'bold 14px sans-serif';
+    const textW = ctx.measureText(item.text).width;
+    const w = Math.max(84, Math.min(156, textW + 24));
+    const h = 36;
+    return {
+      ...item,
+      x: slot.cx,
+      y: slot.cy,
+      w: w,
+      h: h,
+      cooldown: 0
+    };
+  });
+
+  if (announce && bannerTimer <= 0.2) {
+    showBanner('🔀 新しい単語が追加＆シャッフル！', '#fde047', 1.1);
+  }
+}
+
+function updateHud() {
+  document.getElementById('hud-char-icon').textContent = (selectedChar === 'cat') ? '🐱' : '🐩';
+  document.getElementById('hud-life').textContent =
+    '❤️'.repeat(Math.max(0, life)) + '🖤'.repeat(Math.max(0, MAX_LIFE - life));
+  document.getElementById('hud-heal').textContent = `${clearedCount % 5} / 5`;
+  document.getElementById('hud-cleared').textContent = clearedCount;
+  document.getElementById('hud-total').textContent = totalTarget;
+  document.getElementById('hud-score').textContent = score;
+}
+
+function updateHoldingBar() {
+  const el = document.getElementById('holding-word');
+  if (!selectedEnId) {
+    el.textContent = '（まだ持っていません — 青い英単語に触れよう！）';
+    el.style.color = '#94a3b8';
+  } else {
+    const pair = activePairs.find(p => p.id === selectedEnId);
+    if (pair) {
+      el.textContent = `【 ${pair.en} 】 → 合う日本語を探そう！`;
+      el.style.color = '#fde047';
+    }
+  }
+}
+
+function spawnParticles(x, y, color, count = 14) {
+  for (let i = 0; i < count; i++) {
+    const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+    const spd = 60 + Math.random() * 140;
+    particles.push({
+      x, y,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      life: 0.55,
+      color
+    });
+  }
+}
+
+function handleGhostHit(isBoss = false) {
+  playSfx('damage');
+  life--;
+  updateHud();
+
+  spawnParticles(player.x, player.y, '#ef4444', 22);
+
+  if (life <= 0) {
+    endGame(false);
+    return;
+  }
+
+  selectedEnId = null;
+  updateHoldingBar();
+  resetPositionsToStart();
+  player.invulnTimer = 2.0;
+  spawnParticles(player.x, player.y, '#fde047', 16);
+  layoutAndShuffleTiles(false);
+
+  const label = isBoss ? '👑 ボスお化け' : '👻 お化け';
+  showBanner(`${label}にやられた！スタート位置へ戻り単語をシャッフル！`, '#fca5a5', 1.8);
+}
+
+// ==========================================
+// メインループ
+// ==========================================
+function gameLoop(now) {
+  if (gameState !== 'playing') return;
+  const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+  lastFrameTime = now;
+
+  update(dt);
+  draw();
+
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+  if (player.invulnTimer > 0) player.invulnTimer -= dt;
+  if (bannerTimer > 0) bannerTimer -= dt;
+
+  tiles.forEach(t => {
+    if (t.cooldown > 0) t.cooldown -= dt;
+  });
+
+  // 1. プレイヤー移動
+  let vx = 0;
+  let vy = 0;
+  if (keys['arrowleft'] || keys['a']) vx -= 1;
+  if (keys['arrowright'] || keys['d']) vx += 1;
+  if (keys['arrowup'] || keys['w']) vy -= 1;
+  if (keys['arrowdown'] || keys['s']) vy += 1;
+
+  if (vx !== 0 || vy !== 0) {
+    player.targetX = null;
+    player.targetY = null;
+    const len = Math.hypot(vx, vy);
+    vx = (vx / len) * player.speed;
+    vy = (vy / len) * player.speed;
+    player.x += vx * dt;
+    player.y += vy * dt;
+    if (vx !== 0) player.dirX = vx > 0 ? 1 : -1;
+    player.walkPhase += dt * 10;
+  } else if (player.targetX !== null && player.targetY !== null) {
+    const dx = player.targetX - player.x;
+    const dy = player.targetY - player.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 5) {
+      player.x += (dx / dist) * player.speed * dt;
+      player.y += (dy / dist) * player.speed * dt;
+      if (Math.abs(dx) > 2) player.dirX = dx > 0 ? 1 : -1;
+      player.walkPhase += dt * 10;
+    } else {
+      player.targetX = null;
+      player.targetY = null;
+    }
+  }
+
+  player.x = Math.max(22, Math.min(canvas.width - 22, player.x));
+  player.y = Math.max(22, Math.min(canvas.height - 22, player.y));
+
+  // 2. タイルとの当たり判定
+  for (let i = 0; i < tiles.length; i++) {
+    const t = tiles[i];
+    if (t.cooldown > 0) continue;
+
+    const closestX = Math.max(t.x - t.w / 2, Math.min(player.x, t.x + t.w / 2));
+    const closestY = Math.max(t.y - t.h / 2, Math.min(player.y, t.y + t.h / 2));
+    const dist = Math.hypot(player.x - closestX, player.y - closestY);
+
+    if (dist < player.r - 2) {
+      handleTileTouch(t);
+      break;
+    }
+  }
+
+  // 3. お化け3体の追跡AI
+  const speedMult = isLastFiveBoost ? 1.22 : 1.0;
+
+  for (let idx = 0; idx < ghosts.length; idx++) {
+    const g = ghosts[idx];
+    g.phase += dt * (isLastFiveBoost ? 5.5 : 4);
+    let tx = player.x;
+    let ty = player.y;
+
+    if (g.type === 'intercept') {
+      tx += player.dirX * 45;
+    } else if (g.type === 'wave') {
+      tx += Math.cos(g.phase) * 55;
+      ty += Math.sin(g.phase) * 55;
+    }
+
+    const dx = tx - g.x;
+    const dy = ty - g.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 1) {
+      g.x += (dx / dist) * g.speed * speedMult * dt;
+      g.y += (dy / dist) * g.speed * speedMult * dt;
+    }
+
+    ghosts.forEach((other, oIdx) => {
+      if (idx === oIdx) return;
+      const odx = g.x - other.x;
+      const ody = g.y - other.y;
+      const odist = Math.hypot(odx, ody);
+      if (odist > 0 && odist < 46) {
+        g.x += (odx / odist) * 40 * dt;
+        g.y += (ody / odist) * 40 * dt;
+      }
+    });
+
+    const hitDist = Math.hypot(player.x - g.x, player.y - g.y);
+    if (hitDist < player.r + g.r - 5 && player.invulnTimer <= 0) {
+      handleGhostHit(false);
+      return;
+    }
+  }
+
+  // 4. ボスお化けの追跡AI
+  if (bossGhost) {
+    bossGhost.phase += dt * 5;
+    const tx = player.x + player.dirX * 25;
+    const ty = player.y;
+    const dx = tx - bossGhost.x;
+    const dy = ty - bossGhost.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > 1) {
+      bossGhost.x += (dx / dist) * bossGhost.speed * 1.15 * dt;
+      bossGhost.y += (dy / dist) * bossGhost.speed * 1.15 * dt;
+    }
+
+    const hitDist = Math.hypot(player.x - bossGhost.x, player.y - bossGhost.y);
+    if (hitDist < player.r + bossGhost.r - 6 && player.invulnTimer <= 0) {
+      handleGhostHit(true);
+      return;
+    }
+  }
+
+  // 5. パーティクル更新
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function handleTileTouch(tile) {
+  if (tile.kind === 'en') {
+    if (selectedEnId !== tile.pairId) {
+      selectedEnId = tile.pairId;
+      playSfx('pick');
+      speakWord(tile.text);
+      spawnParticles(tile.x, tile.y, '#38bdf8', 10);
+      updateHoldingBar();
+    }
+    tile.cooldown = 0.45;
+  } else if (tile.kind === 'jp') {
+    if (!selectedEnId) {
+      tile.cooldown = 0.4;
+      return;
+    }
+
+    if (tile.pairId === selectedEnId) {
+      // 正解！（画面が暗くならないよう明るいまま続行）
+      score += 100;
+      clearedCount++;
+      spawnParticles(tile.x, tile.y, '#fde047', 22);
+
+      const remainingCount = totalTarget - clearedCount;
+
+      if (remainingCount === 5 && !isLastFiveBoost) {
+        isLastFiveBoost = true;
+        canvas.classList.add('last-five');
+        spawnBossGhost();
+
+        if (clearedCount % 5 === 0 && life < MAX_LIFE) {
+          life++;
+          spawnParticles(player.x, player.y, '#f472b6', 26);
+          playSfx('boss');
+          showBanner('💖 ライフ1復活！＆ 👑ラスト5問！ボスお化け出現！', '#fb923c', 2.2);
+        } else {
+          if (clearedCount % 5 === 0) score += 200;
+          playSfx('boss');
+          showBanner('👑 ラスト5問！ボスお化け出現＆スピードアップ！', '#fb923c', 2.1);
+        }
+      } else if (clearedCount % 5 === 0) {
+        if (life < MAX_LIFE) {
+          life++;
+          playSfx('heal');
+          spawnParticles(player.x, player.y, '#f472b6', 26);
+          showBanner('💖 5個正解ボーナス！ライフ1復活！', '#f472b6', 1.6);
+        } else {
+          playSfx('heal');
+          score += 200;
+          showBanner('✨ 5個正解＆ライフ満タンボーナス +200点！', '#4ade80', 1.5);
+        }
+      } else {
+        playSfx('match');
+        showBanner('🔀 新しい単語が追加＆シャッフル！', '#fde047', 1.1);
+      }
+
+      activePairs = activePairs.filter(p => p.id !== selectedEnId);
+      if (remainingPool.length > 0) {
+        activePairs.push(remainingPool.shift());
+      }
+      selectedEnId = null;
+      updateHud();
+      updateHoldingBar();
+
+      if (activePairs.length === 0) {
+        endGame(true);
+        return;
+      }
+
+      // シャッフル直後の保護判定のみ設定（描画は明るいまま）
+      player.invulnTimer = Math.max(player.invulnTimer, 0.9);
+      layoutAndShuffleTiles(false);
+    } else {
+      // 不正解
+      playSfx('damage');
+      life--;
+      const curPair = activePairs.find(p => p.id === selectedEnId);
+      if (curPair && !missedWords.some(m => m.en === curPair.en)) {
+        missedWords.push(curPair);
+      }
+      spawnParticles(tile.x, tile.y, '#ef4444', 18);
+      showBanner(`❌ 違う日本語に触れた！ライフ -1（正解は「${curPair ? curPair.jp : ''}」）`, '#fca5a5', 1.5);
+
+      selectedEnId = null;
+      tile.cooldown = 1.0;
+      updateHud();
+      updateHoldingBar();
+
+      if (life <= 0) {
+        endGame(false);
+        return;
+      }
+    }
+  }
+}
+
+function endGame(isWin) {
+  gameState = 'ended';
+  if (animId) cancelAnimationFrame(animId);
+  bossGhost = null;
+  canvas.classList.remove('last-five');
+
+  const endOv = document.getElementById('endOverlay');
+  const title = document.getElementById('endTitle');
+  const msg = document.getElementById('endMsg');
+  const missBox = document.getElementById('miss-box');
+
+  if (isWin) {
+    title.textContent = '🎉 完全クリア！おめでとう！';
+    title.style.color = '#fde047';
+    msg.innerHTML = `重複なし全 ${totalTarget} 問のマッチングに成功しました！<br>最終スコア：<b>${score} 点</b>`;
+  } else {
+    title.textContent = '💔 ライフが0になった…！';
+    title.style.color = '#fca5a5';
+    msg.innerHTML = `クリア数：${clearedCount} / ${totalTarget} 問（スコア：${score} 点）<br>もう1回チャレンジしよう！`;
+  }
+
+  if (missedWords.length > 0) {
+    missBox.classList.remove('hidden');
+    missBox.innerHTML = '<b>📌 間違えた単語を復習しよう：</b><ul style="margin:6px 0 0; padding-left:20px;">' +
+      missedWords.map(m => `<li><b>${m.en}</b>：${m.jp}</li>`).join('') + '</ul>';
+  } else {
+    missBox.classList.add('hidden');
+  }
+
+  endOv.classList.remove('hidden');
+}
+
+// ==========================================
+// 描画処理
+// ==========================================
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#166534';
+  for (let y = 0; y < canvas.height; y += 60) {
+    ctx.fillRect(0, y, canvas.width, 30);
+  }
+
+  if (isLastFiveBoost) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(254, 202, 202, 0.35)';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('👑 BOSS & LAST 5 SPURT!', canvas.width - 14, canvas.height - 10);
+    ctx.restore();
+  }
+
+  if (player.targetX !== null && player.targetY !== null) {
+    ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(player.targetX, player.targetY, 10, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  tiles.forEach(t => {
+    const left = t.x - t.w / 2;
+    const top = t.y - t.h / 2;
+    const isSelected = (t.kind === 'en' && t.pairId === selectedEnId);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    roundRect(ctx, left + 2, top + 4, t.w, t.h, 10, true, false);
+
+    if (isSelected) {
+      ctx.fillStyle = '#fde047';
+      ctx.strokeStyle = '#ca8a04';
+    } else if (t.kind === 'en') {
+      ctx.fillStyle = '#dbeafe';
+      ctx.strokeStyle = '#2563eb';
+    } else {
+      ctx.fillStyle = '#ffedd5';
+      ctx.strokeStyle = '#ea580c';
+    }
+    ctx.lineWidth = isSelected ? 3 : 2;
+    roundRect(ctx, left, top, t.w, t.h, 10, true, true);
+
+    ctx.fillStyle = isSelected ? '#1e293b' : (t.kind === 'en' ? '#1e3a8a' : '#7c2d12');
+    ctx.font = 'bold 14px "UD デジタル 教科書体 NK-R", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.text, t.x, t.y + 1, t.w - 12);
+    ctx.restore();
+  });
+
+  if (selectedChar === 'cat') {
+    drawHachiwareCat(player);
+  } else {
+    drawWhiteToyPoodle(player);
+  }
+
+  ghosts.forEach(g => drawGhost(g));
+  if (bossGhost) drawBossGhost(bossGhost);
+
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, p.life * 1.8);
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  if (bannerTimer > 0 && bannerText) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, bannerTimer * 1.5);
+    ctx.font = 'bold 14px sans-serif';
+    const bw = Math.min(canvas.width - 30, Math.max(280, ctx.measureText(bannerText).width + 36));
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    roundRect(ctx, canvas.width / 2 - bw / 2, 12, bw, 34, 999, true, false);
+    ctx.fillStyle = bannerColor;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bannerText, canvas.width / 2, 29, bw - 20);
+    ctx.restore();
+  }
+}
+
+// キャッチ中ワード吹き出し共通描画
+function drawHoldingBubble() {
+  if (selectedEnId) {
+    const pair = activePairs.find(item => item.id === selectedEnId);
+    if (pair) {
+      ctx.font = 'bold 12px sans-serif';
+      const tw = ctx.measureText(pair.en).width + 16;
+      ctx.fillStyle = '#fef08a';
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 2;
+      roundRect(ctx, -tw / 2, -52, tw, 22, 8, true, true);
+      ctx.fillStyle = '#1e293b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pair.en, 0, -41);
+    }
+  }
+}
+
+// ① 白のトイプードル描画（正面向き・お座り・手足固定・明るいまま表示）
+function drawWhiteToyPoodle(p) {
+  ctx.save();
+  const bob = Math.sin(p.walkPhase) * 1.8;
+  ctx.translate(p.x, p.y + bob);
+  drawHoldingBubble();
+
+  // 足元の影
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.beginPath();
+  ctx.ellipse(0, 19, 14, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 右横から少し見えるポンポンしっぽ
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.arc(12, 12, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // お座りした後ろ足（左右にちょこん）
+  ctx.fillStyle = '#f8fafc';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.beginPath();
+  ctx.ellipse(-9, 15, 4.5, 3.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(9, 15, 4.5, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // お座りしたモコモコの白い体（正面）
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(0, 8, 10.5, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 揃えた前足2本（動かずお座り）
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.6;
+  roundRect(ctx, -6, 6, 4.8, 11.5, 2.4, true, true);
+  roundRect(ctx, 1.2, 6, 4.8, 11.5, 2.4, true, true);
+
+  // 赤い首輪と金の鈴
+  ctx.fillStyle = '#ef4444';
+  roundRect(ctx, -8, -2, 16, 4.5, 2, true, false);
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(0, 2.5, 2.6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 左右のふわふわ垂れ耳
+  ctx.fillStyle = '#f8fafc';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.7;
+  ctx.beginPath();
+  ctx.ellipse(-12.5, -8, 4.8, 8.5, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(12.5, -8, 4.8, 8.5, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 正面向きの白い丸顔
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(0, -10, 11.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 頭頂部のふわふわアフロ毛
+  ctx.beginPath();
+  ctx.arc(-4, -20.5, 5.2, 0, Math.PI * 2);
+  ctx.arc(4, -20.5, 5.2, 0, Math.PI * 2);
+  ctx.arc(0, -21.5, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 左右のつぶらな黒い目
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(-4.5, -11, 2.1, 0, Math.PI * 2);
+  ctx.arc(4.5, -11, 2.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 目のハイライト
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(-5.1, -11.7, 0.75, 0, Math.PI * 2);
+  ctx.arc(3.9, -11.7, 0.75, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ツヤのある黒い鼻と口元
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.ellipse(0, -7, 2.5, 1.9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(0, -5.2);
+  ctx.lineTo(0, -3.5);
+  ctx.moveTo(-2.5, -3.8);
+  ctx.quadraticCurveTo(0, -2.5, 2.5, -3.8);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ② 顔だけ八割れで体白の猫描画（正面向き・お座り・手足固定・明るいまま表示）
+function drawHachiwareCat(p) {
+  ctx.save();
+  const bob = Math.sin(p.walkPhase) * 1.8;
+  ctx.translate(p.x, p.y + bob);
+  drawHoldingBubble();
+
+  // 足元の影
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+  ctx.beginPath();
+  ctx.ellipse(0, 19, 14, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 右横にくるんと出した白いしっぽ
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(8, 15);
+  ctx.quadraticCurveTo(19, 14, 17, 4);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(8, 15);
+  ctx.quadraticCurveTo(19, 14, 17, 4);
+  ctx.stroke();
+
+  // お座りした後ろ足（左右にちょこん）
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.ellipse(-8.5, 15, 4.2, 3.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(8.5, 15, 4.2, 3.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 真っ白な体（お座り正面）
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(0, 8, 10, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 揃えた白い前足2本（動かずお座り）
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.6;
+  roundRect(ctx, -5.5, 6, 4.4, 11.5, 2.2, true, true);
+  roundRect(ctx, 1.1, 6, 4.4, 11.5, 2.2, true, true);
+
+  // 赤い首輪と金の鈴
+  ctx.fillStyle = '#ef4444';
+  roundRect(ctx, -7.5, -2, 15, 4.2, 2, true, false);
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath();
+  ctx.arc(0, 2.4, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 左右のピンと立った三角耳（黒＋内耳ピンク）
+  ctx.fillStyle = '#1e293b';
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1.5;
+  // 左耳
+  ctx.beginPath();
+  ctx.moveTo(-11, -13);
+  ctx.lineTo(-10, -24);
+  ctx.lineTo(-2, -18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  // 右耳
+  ctx.beginPath();
+  ctx.moveTo(11, -13);
+  ctx.lineTo(10, -24);
+  ctx.lineTo(2, -18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // 内耳ピンク
+  ctx.fillStyle = '#fda4af';
+  ctx.beginPath();
+  ctx.moveTo(-9.5, -14.5);
+  ctx.lineTo(-9.2, -21);
+  ctx.lineTo(-4, -17.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(9.5, -14.5);
+  ctx.lineTo(9.2, -21);
+  ctx.lineTo(4, -17.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // 正面向きの白い丸顔（ベース）
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 12.2, 10.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // 顔の上部だけのきれいな「八割れ（ハチワレ）」黒模様
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(0, -10, 11.8, 10.4, 0, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath();
+  ctx.moveTo(-14, -22);
+  ctx.lineTo(14, -22);
+  ctx.lineTo(14, -8);
+  // 鼻の上から左右へ「ハ」の字に広がる綺麗な白ハチワレライン
+  ctx.quadraticCurveTo(6, -10, 0, -15.5);
+  ctx.quadraticCurveTo(-6, -10, -14, -8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // パッチリしたネコの目
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.arc(-4.8, -10, 2.2, 0, Math.PI * 2);
+  ctx.arc(4.8, -10, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(-5.4, -10.7, 0.8, 0, Math.PI * 2);
+  ctx.arc(4.2, -10.7, 0.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ピンクの小さな三角鼻
+  ctx.fillStyle = '#fb7185';
+  ctx.beginPath();
+  ctx.moveTo(-1.8, -7.2);
+  ctx.lineTo(1.8, -7.2);
+  ctx.lineTo(0, -5.4);
+  ctx.closePath();
+  ctx.fill();
+
+  // ネコの口（ω）
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(-2.5, -4.5);
+  ctx.quadraticCurveTo(-1.2, -3.2, 0, -5);
+  ctx.quadraticCurveTo(1.2, -3.2, 2.5, -4.5);
+  ctx.stroke();
+
+  // 左右のヒゲ（2本ずつ）
+  ctx.strokeStyle = '#64748b';
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(-8, -7.5);
+  ctx.lineTo(-15, -8.5);
+  ctx.moveTo(-8, -5.5);
+  ctx.lineTo(-15, -5);
+  ctx.moveTo(8, -7.5);
+  ctx.lineTo(15, -8.5);
+  ctx.moveTo(8, -5.5);
+  ctx.lineTo(15, -5);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawGhost(g) {
+  ctx.save();
+  const floatY = Math.sin(g.phase) * 3;
+  ctx.translate(g.x, g.y + floatY);
+
+  if (isLastFiveBoost) {
+    ctx.shadowColor = '#fb923c';
+    ctx.shadowBlur = 12;
+  }
+
+  ctx.globalAlpha = 0.88;
+  ctx.fillStyle = g.color;
+  ctx.strokeStyle = isLastFiveBoost ? '#ea580c' : '#334155';
+  ctx.lineWidth = isLastFiveBoost ? 2.5 : 2;
+
+  ctx.beginPath();
+  ctx.arc(0, -4, g.r, Math.PI, 0, false);
+  ctx.lineTo(g.r, 14);
+  ctx.lineTo(g.r * 0.5, 9);
+  ctx.lineTo(0, 14);
+  ctx.lineTo(-g.r * 0.5, 9);
+  ctx.lineTo(-g.r, 14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = isLastFiveBoost ? '#dc2626' : g.eyeColor;
+  ctx.beginPath();
+  ctx.arc(-5, -5, 3, 0, Math.PI * 2);
+  ctx.arc(5, -5, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath();
+  ctx.arc(0, 3, 3.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawBossGhost(b) {
+  ctx.save();
+  const floatY = Math.sin(b.phase) * 4;
+  ctx.translate(b.x, b.y + floatY);
+
+  ctx.shadowColor = '#ef4444';
+  ctx.shadowBlur = 18;
+
+  ctx.globalAlpha = 0.94;
+  ctx.fillStyle = '#3b0764';
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 3;
+
+  const r = b.r;
+  ctx.beginPath();
+  ctx.arc(0, -5, r, Math.PI, 0, false);
+  ctx.lineTo(r, 22);
+  ctx.lineTo(r * 0.6, 14);
+  ctx.lineTo(r * 0.2, 22);
+  ctx.lineTo(-r * 0.2, 14);
+  ctx.lineTo(-r * 0.6, 22);
+  ctx.lineTo(-r, 14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#facc15';
+  ctx.strokeStyle = '#a16207';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(-14, -r - 2);
+  ctx.lineTo(-16, -r - 16);
+  ctx.lineTo(-7, -r - 9);
+  ctx.lineTo(0, -r - 19);
+  ctx.lineTo(7, -r - 9);
+  ctx.lineTo(16, -r - 16);
+  ctx.lineTo(14, -r - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#fef08a';
+  ctx.beginPath();
+  ctx.arc(-8, -6, 4.8, 0, Math.PI * 2);
+  ctx.arc(8, -6, 4.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath();
+  ctx.arc(-8, -6, 2.5, 0, Math.PI * 2);
+  ctx.arc(8, -6, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#fca5a5';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-14, -13);
+  ctx.lineTo(-4, -9);
+  ctx.moveTo(14, -13);
+  ctx.lineTo(4, -9);
+  ctx.stroke();
+
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.ellipse(0, 7, 9, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (fill) ctx.fill();
+  if (stroke) ctx.stroke();
+}
+</script>
+</body>
+</html>
